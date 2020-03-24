@@ -4,15 +4,17 @@
 namespace App\Tests\Controller;
 
 
+use App\Repository\CommentRepository;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Test\WebTestCase;
 use Symfony\Component\Panther\PantherTestCase;
 
-class ConferenceControllerTest extends PantherTestCase
+class ConferenceControllerTest extends WebTestCase
 {
     public function testIndex()
     {
-//        $client = static::createClient();
-        $client = static ::createPantherClient(['external_base_uri' => $_SERVER['SYMFONY_DEFAULT_ROUTE_URL']]);
+        $client = static::createClient();
+//        $client = static ::createPantherClient(['external_base_uri' => $_SERVER['SYMFONY_DEFAULT_ROUTE_URL']]);
         $client->request('GET', '/');
 
         $this->assertResponseIsSuccessful();
@@ -42,10 +44,16 @@ class ConferenceControllerTest extends PantherTestCase
         $client->submitForm('Submit',[
             'comment_form[author]' => 'Sylvain',
             'comment_form[text]' => 'This conference was really great !!!',
-            'comment_form[email]' => 'hello@world.com',
+            'comment_form[email]' => $email = 'hello@world.com',
             'comment_form[photo]' => dirname(__DIR__, 2).'/public/images/under-construction.gif'
         ]);
         $this->assertResponseRedirects();
+
+        // simulate comments validation
+        $comment = self::$container->get(CommentRepository::class)->findOneByEmail($email);
+        $comment->setState('published');
+        self::$container->get(EntityManagerInterface::class)->flush();
+
         $client->followRedirect();
         $this->assertSelectorExists('div:contains("There are 2 comments")');
     }
