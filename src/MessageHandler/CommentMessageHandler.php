@@ -12,8 +12,10 @@ use Doctrine\ORM\EntityManagerInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Bridge\Twig\Mime\NotificationEmail;
 use Symfony\Component\Mailer\MailerInterface;
+use App\Notification\CommentReviewNotification;
 use Symfony\Component\Messenger\Handler\MessageHandlerInterface;
 use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Component\Notifier\NotifierInterface;
 use Symfony\Component\Workflow\WorkflowInterface;
 use Symfony\Contracts\HttpClient\Exception\ClientExceptionInterface;
 use Symfony\Contracts\HttpClient\Exception\RedirectionExceptionInterface;
@@ -28,6 +30,7 @@ class CommentMessageHandler implements MessageHandlerInterface
     private $bus;
     private $workflow;
     private $mailer;
+    private $notifier;
     private $imageOptimizer;
     private $adminEmail;
     private $photoDir;
@@ -40,8 +43,9 @@ class CommentMessageHandler implements MessageHandlerInterface
      * @param CommentRepository $commentRepository
      * @param MessageBusInterface $bus
      * @param WorkflowInterface $commentStateMachine
-     * @param MailerInterface $mailer
-     * @param string $adminEmail
+     * @param NotifierInterface $notifier
+     * @param ImageOptimizer $imageOptimizer
+     * @param string $photoDir
      * @param LoggerInterface|null $logger
      */
     public function __construct(
@@ -50,9 +54,10 @@ class CommentMessageHandler implements MessageHandlerInterface
         CommentRepository $commentRepository,
         MessageBusInterface $bus,
         WorkflowInterface $commentStateMachine,
-        MailerInterface $mailer,
+        NotifierInterface $notifier,
+        //MailerInterface $mailer,
         ImageOptimizer $imageOptimizer,
-        string $adminEmail,
+        //string $adminEmail,
         string $photoDir,
         LoggerInterface $logger = null)
     {
@@ -61,8 +66,9 @@ class CommentMessageHandler implements MessageHandlerInterface
         $this->commentRepository = $commentRepository;
         $this->bus = $bus;
         $this->workflow = $commentStateMachine;
-        $this->mailer = $mailer;
-        $this->adminEmail = $adminEmail;
+        //$this->mailer = $mailer;
+        //$this->adminEmail = $adminEmail;
+        $this->notifier = $notifier;
         $this->logger = $logger;
     }
 
@@ -72,7 +78,6 @@ class CommentMessageHandler implements MessageHandlerInterface
      * @throws RedirectionExceptionInterface
      * @throws ServerExceptionInterface
      * @throws TransportExceptionInterface
-     * @throws \Symfony\Component\Mailer\Exception\TransportExceptionInterface
      */
     public function __invoke(CommentMessage $message): void
     {
@@ -99,15 +104,19 @@ class CommentMessageHandler implements MessageHandlerInterface
             $this->entityManager->flush();
             $this->bus->dispatch($message);
         }elseif($this->workflow->can($comment, 'publish') || $this->workflow->can($comment, 'publish_ham')) {
-            $this->workflow->apply($comment, $this->workflow->can($comment, 'publish') ? 'publish' : 'publish_ham');
-            $this->entityManager->flush();
-            $this->mailer->send((new NotificationEmail())
+            $notification = new CommentReviewNotification($comment, $message->getReviewUrl());
+
+            /*$this->workflow->apply($comment, $this->workflow->can($comment, 'publish') ? 'publish' : 'publish_ham');
+            $this->entityManager->flush();*/
+            /*$this->mailer->send((new NotificationEmail())
                 ->subject('New comment posted')
                 ->htmlTemplate('emails/comment_notification.html.twig')
                 ->from($this->adminEmail)
                 ->to($this->adminEmail)
                 ->context(['comment' => $comment])
-            );
+            );*/
+            $this->notifier->send($notification,
+                ...$this->notifier->getAdminRecipients());
         }elseif($this->workflow->can($comment, 'optimize')){
             if($comment->getPhotoFilename()){
                 $this->imageOptimizer->resize($this->photoDir.'/'.$comment->getPhotoFilename());
