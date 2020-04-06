@@ -11,20 +11,20 @@ use Symfony\Component\Panther\PantherTestCase;
 
 class ConferenceControllerTest extends WebTestCase
 {
-    public function testIndex()
+    public function testIndex(): void
     {
         $client = static::createClient();
 //        $client = static ::createPantherClient(['external_base_uri' => $_SERVER['SYMFONY_DEFAULT_ROUTE_URL']]);
-        $client->request('GET', '/');
+        $client->request('GET', '/en/');
 
         $this->assertResponseIsSuccessful();
         $this->assertSelectorTextContains('h2', 'Give your feedback');
     }
 
-    public function testConferencePage()
+    public function testConferencePage(): void
     {
         $client = static::createClient();
-        $crawler = $client->request('GET', '/');
+        $crawler = $client->request('GET', '/en/');
 
         $this->assertCount(2, $crawler->filter('h4'));
 
@@ -34,13 +34,13 @@ class ConferenceControllerTest extends WebTestCase
 
         $this->assertPageTitleContains('Amsterdam');
         $this->assertSelectorTextContains('h2', 'Amsterdam 2019');
-        $this->assertSelectorExists('div:contains("There are 1 comments")');
+        $this->assertSelectorExists('div:contains("There is one comments")');
     }
 
-    public function testCommentSubmission()
+    public function testCommentSubmission(): void
     {
         $client = static ::createClient();
-        $client->request('GET','/conference/amsterdam-2019');
+        $client->request('GET','/en/conference/amsterdam-2019');
         $client->submitForm('Submit',[
             'comment_form[author]' => 'Sylvain',
             'comment_form[text]' => 'This conference was really great !!!',
