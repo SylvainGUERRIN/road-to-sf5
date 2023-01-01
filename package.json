@@ -1,6 +1,6 @@
 {
     "devDependencies": {
-        "@symfony/webpack-encore": "^0.30.2",
+        "@symfony/webpack-encore": "^4.2.0",
         "core-js": "^3.12.1",
         "regenerator-runtime": "^0.13.7",
         "webpack-notifier": "^1.13.0"
@@ -20,7 +20,7 @@
         "lodash": "^4.17.21",
         "node-sass": "^4.14.1",
         "popper.js": "^1.16.1",
-        "sass-loader": "^7.3.1",
+        "sass-loader": "^13.2.0",
         "websocket-extensions": "^0.1.4"
     }
 }
